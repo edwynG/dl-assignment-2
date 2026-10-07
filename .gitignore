@@ -11,7 +11,7 @@ __pycache__/
 
 # Jupyter Notebooks
 .ipynb_checkpoints/
-
+*.pkl
 
 # LaTeX
 *.aux
