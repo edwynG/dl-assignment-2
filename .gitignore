@@ -16,6 +16,17 @@ __pycache__/
 *.jpg
 data/
 files/
+*.gz
+*.jpg
+*.mat
+*.xml
+experiment/annotations
+experiment/images
+experiment/list.txt
+experiment/test.txt
+experiment/trainval.txt
+experiment/checkpoints
+*.Identifier
 
 # LaTeX
 *.aux
@@ -31,6 +42,7 @@ files/
 *.synctex.gz
 *.out.synctex.gz
 *.synctex.gz(busy)
+
 
 # Directorios de salida generados por el script
 build/
