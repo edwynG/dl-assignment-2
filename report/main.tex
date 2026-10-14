@@ -30,6 +30,9 @@
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{3.8pt plus 1pt minus 0.5pt}
 \newcommand{\sangria}{\hspace*{1.5em}}
+\newcommand{\refcuadro}[1]{\hyperref[#1]{Cuadro~\ref*{#1}}}
+\newcommand{\reffigura}[1]{\hyperref[#1]{Figura~\ref*{#1}}}
+\newcommand{\refanexo}[2]{\hyperref[#1]{Anexo~#2}}
 
 \begin{document}
 
@@ -74,7 +77,7 @@
 
 \section{Baseline reproducido}
 
-\sangria Entrené el modelo base para segmentación semántica sobre el conjunto de datos Oxford-IIIT Pet, siguiendo el protocolo de evaluación fijado en las instrucciones. La red procesa imágenes de 160 por 160 píxeles y genera mapas de segmentación divididos en tres clases, correspondientes a animal, fondo y borde de silueta.
+\sangria Entrené el modelo base para segmentación semántica sobre el conjunto de datos Oxford-IIIT Pet presentado por Parkhi y colaboradores en 2012, siguiendo el protocolo de evaluación fijado en las instrucciones. La red procesa imágenes de 160 por 160 píxeles y genera mapas de segmentación divididos en tres clases, correspondientes a animal, fondo y borde de silueta.
 
 Con 40 épocas de entrenamiento, usando el optimizador Adam, una tasa de aprendizaje de 1e-4 y lotes de 32 imágenes, este modelo base alcanzó un desempeño de validación de 0.5203 de mIoU en la época 40. Además obtuvo una exactitud de píxel de 0.8527 y un total de 2.058.979 parámetros entrenables. Cada época tomó un promedio de 8.1 segundos en una GPU T4 de Google Colab. El valor de referencia dado en clase para este baseline es de 0.52 de mIoU, por lo que el resultado de 0.5203 confirma la reproducción correcta del modelo y define el número a superar con los experimentos posteriores.
 
@@ -121,15 +124,15 @@ Las redes neuronales convolucionales ofrecen tres ventajas fundamentales frente 
 
 \sangria Las máscaras de segmentación contienen etiquetas discretas enteras con valores 0, 1 y 2. Para redimensionarlas es obligatorio usar interpolación de vecino más cercano, porque este método asigna a cada nueva posición el valor exacto del píxel original más próximo. Si se empleara interpolación bilineal, se promediarían valores numéricos y se generarían números decimales continuos como 0.5 o 1.4, creando clases falsas que destruyen las fronteras de los objetos.
 
-El conjunto de datos presenta un marcado desbalance de clases, pues el notebook registra un 61.4\% de píxeles para el fondo, un 27.4\% para el animal y apenas un 11.2\% para el borde. Con estas proporciones, un modelo hipotético que acierte perfectamente todos los píxeles de animal y de fondo pero que nunca prediga la clase borde alcanzaría una exactitud de píxel de 88.8\%, resultado de sumar 27.4\% y 61.4\%. Sin embargo, su IoU en la clase borde sería exactamente cero, produciendo un mIoU que no superaría dos tercios o 0.67 en la cota ideal, situándose cerca de 0.58 al absorber el borde como falsos positivos de fondo y animal. Por esta razón el mIoU es la métrica principal, ya que asigna el mismo peso a cada una de las tres categorías en el promedio y penaliza severamente el colapso de los contornos, impidiendo que el predominio de las áreas grandes oculte la incapacidad del modelo para delimitar las siluetas. En el anexo A se amplía el análisis de esta distribución.
+El conjunto de datos presenta un marcado desbalance de clases, pues el notebook registra un 61.4\% de píxeles para el fondo, un 27.4\% para el animal y apenas un 11.2\% para el borde. Con estas proporciones, un modelo hipotético que acierte perfectamente todos los píxeles de animal y de fondo pero que nunca prediga la clase borde alcanzaría una exactitud de píxel de 88.8\%, resultado de sumar 27.4\% y 61.4\%. Sin embargo, su IoU en la clase borde sería exactamente cero, produciendo un mIoU que no superaría dos tercios o 0.67 en la cota ideal, situándose cerca de 0.58 al absorber el borde como falsos positivos de fondo y animal. Por esta razón el mIoU es la métrica principal, ya que asigna el mismo peso a cada una de las tres categorías en el promedio y penaliza severamente el colapso de los contornos, impidiendo que el predominio de las áreas grandes oculte la incapacidad del modelo para delimitar las siluetas. En el \refanexo{anexo_a}{A} se amplía el análisis de esta distribución.
 
-El relleno same o padding same consiste en agregar un reborde de ceros alrededor de la entrada para conservar la resolución espacial cuando el salto es unitario. Al emplear un salto $S = 2$ con filtros de $K = 3$, este relleno sitúa $P = 1$ píxel de ceros por borde, transformando la fórmula general de convolución $O = \lfloor \frac{N + 2P - K}{S} \rfloor + 1$ en $\lfloor \frac{N + 2 \cdot 1 - 3}{2} \rfloor + 1 = \lfloor \frac{N - 1}{2} \rfloor + 1$, expresión que coincide con el redondeo hacia arriba $O = \lceil \frac{N}{2} \rceil$. Aplicando esta fórmula a una entrada de 160 por 160 con 3 canales, la dimensión espacial del codificador se reduce sucesivamente en cuatro etapas según $O_1 = \lceil 160/2 \rceil = 80$, $O_2 = \lceil 80/2 \rceil = 40$, $O_3 = \lceil 40/2 \rceil = 20$ y $O_4 = \lceil 20/2 \rceil = 10$, alcanzando un cuello de botella de 10 por 10 con 256 canales. Como el codificador aplica cuatro etapas de salto 2, el factor de reducción espacial acumulado es el producto de todos los saltos, $S_{total} = 2 \cdot 2 \cdot 2 \cdot 2 = 16$, que equivale al cociente entre la entrada y la salida $160 / 10 = 16$, demostrando que cada celda del cuello de botella representa un área de 16 por 16 píxeles de la imagen original. Si la entrada fuera de 150 por 150, las reducciones con la misma fórmula arrojarían $O_1 = \lceil 150/2 \rceil = 75$, $O_2 = \lceil 75/2 \rceil = 38$, $O_3 = \lceil 38/2 \rceil = 19$ y $O_4 = \lceil 19/2 \rceil = 10$. En el decodificador, la capa UpSampling2D expande las dimensiones espaciales duplicando según la relación $O' = 2 \cdot N'$. Al reconstruir desde el cuello de botella de 10 píxeles, la capa produce $O' = 2 \cdot 10 = 20$ píxeles, lo que genera un desajuste dimensional frente al mapa del codificador que mide 19 píxeles. Puesto que las conexiones residuales del baseline ejecutan una suma elemento a elemento que exige dimensiones espaciales idénticas, la discrepancia entre 20 y 19 hace imposible la operación y detiene el modelo con un error de tensores. En el anexo D se detalla la tabla completa de dimensiones construida a mano para cada etapa del baseline.
+El relleno same o padding same consiste en agregar un reborde de ceros alrededor de la entrada para conservar la resolución espacial cuando el salto es unitario. Al emplear un salto $S = 2$ con filtros de $K = 3$, este relleno sitúa $P = 1$ píxel de ceros por borde, transformando la fórmula general de convolución $O = \lfloor \frac{N + 2P - K}{S} \rfloor + 1$ en $\lfloor \frac{N + 2 \cdot 1 - 3}{2} \rfloor + 1 = \lfloor \frac{N - 1}{2} \rfloor + 1$, expresión que coincide con el redondeo hacia arriba $O = \lceil \frac{N}{2} \rceil$. Aplicando esta fórmula a una entrada de 160 por 160 con 3 canales, la dimensión espacial del codificador se reduce sucesivamente en cuatro etapas según $O_1 = \lceil 160/2 \rceil = 80$, $O_2 = \lceil 80/2 \rceil = 40$, $O_3 = \lceil 40/2 \rceil = 20$ y $O_4 = \lceil 20/2 \rceil = 10$, alcanzando un cuello de botella de 10 por 10 con 256 canales. Como el codificador aplica cuatro etapas de salto 2, el factor de reducción espacial acumulado es el producto de todos los saltos, $S_{total} = 2 \cdot 2 \cdot 2 \cdot 2 = 16$, que equivale al cociente entre la entrada y la salida $160 / 10 = 16$, demostrando que cada celda del cuello de botella representa un área de 16 por 16 píxeles de la imagen original. Si la entrada fuera de 150 por 150, las reducciones con la misma fórmula arrojarían $O_1 = \lceil 150/2 \rceil = 75$, $O_2 = \lceil 75/2 \rceil = 38$, $O_3 = \lceil 38/2 \rceil = 19$ y $O_4 = \lceil 19/2 \rceil = 10$. En el decodificador, la capa UpSampling2D expande las dimensiones espaciales duplicando según la relación $O' = 2 \cdot N'$. Al reconstruir desde el cuello de botella de 10 píxeles, la capa produce $O' = 2 \cdot 10 = 20$ píxeles, lo que genera un desajuste dimensional frente al mapa del codificador que mide 19 píxeles. Puesto que las conexiones residuales del baseline ejecutan una suma elemento a elemento que exige dimensiones espaciales idénticas, la discrepancia entre 20 y 19 hace imposible la operación y detiene el modelo con un error de tensores. En el \refanexo{anexo_d}{D} se detalla la tabla completa de dimensiones construida a mano para cada etapa del baseline.
 
-En el decodificador, la capa Conv2DTranspose con salto 1 por defecto y relleno same no altera las dimensiones espaciales. La capa encargada de duplicar la resolución es UpSampling2D mediante repetición de píxeles. Frente a una capa Conv2D con idénticos argumentos, ambas poseen exactamente la misma cantidad de parámetros, alcanzando 590.080 parámetros para los 256 canales y 256 filtros del primer bloque según la expresión $9 \cdot C_{in} \cdot f + f$, pues la convolución transpuesta solo intercambia los ejes de canales del tensor de pesos sin alterar el número de coeficientes ni los sesgos. Al sustituirla por Conv2DTranspose con salto 2, se gana aprender filtros de remuestreo adaptativos en una sola operación, pero se arriesga generar artefactos de cuadrícula tipo tablero de ajedrez por la superposición desigual cuando el kernel 3 no es divisible entre el salto 2.
+En el decodificador, la capa Conv2DTranspose con salto 1 por defecto y relleno same no altera las dimensiones espaciales. La capa encargada de duplicar la resolución es UpSampling2D mediante repetición de píxeles. Frente a una capa Conv2D con idénticos argumentos, ambas poseen exactamente la misma cantidad de parámetros, alcanzando 590.080 parámetros para los 256 canales y 256 filtros del primer bloque según la expresión $9 \cdot C_{in} \cdot f + f$, pues la convolución transpuesta solo intercambia los ejes de canales del tensor de pesos sin alterar el número de coeficientes ni los sesgos. Al sustituirla por Conv2DTranspose con salto 2, se gana aprender filtros de remuestreo adaptativos en una sola operación, pero se arriesga generar artefactos de cuadrícula tipo tablero de ajedrez estudiados por Odena y colaboradores en 2016 por la superposición desigual cuando el kernel 3 no es divisible entre el salto 2.
 
-Al comparar una capa Conv2D estándar de 128 filtros y kernel 3 por 3 frente a una SeparableConv2D equivalente con entrada de 128 canales, la convolución estándar requiere 147.584 parámetros frente a solo 17.664 de la separable, logrando una reducción de más de ocho veces en costo computacional. Asimismo, el bloque completo del codificador de 128 filtros totaliza 35.904 parámetros, repartidos en 8.896 para la primera separable, 17.664 para la segunda, 8.320 para la proyección residual 1 por 1 y 1.024 en normalización por lotes. En el anexo D se detalla el desglose analítico a mano de cada término.
+Al comparar una capa Conv2D estándar de 128 filtros y kernel 3 por 3 frente a una SeparableConv2D equivalente con entrada de 128 canales, la convolución estándar requiere 147.584 parámetros frente a solo 17.664 de la separable introducida por Chollet en 2017 para la red Xception, logrando una reducción de más de ocho veces en costo computacional. Asimismo, el bloque completo del codificador de 128 filtros totaliza 35.904 parámetros, repartidos en 8.896 para la primera separable, 17.664 para la segunda, 8.320 para la proyección residual 1 por 1 y 1.024 en normalización por lotes. En el \refanexo{anexo_d}{D} se detalla el desglose analítico a mano de cada término.
 
-Por último, el baseline no es una U-Net porque implementa conexiones residuales locales tipo ResNet con adición elemento a elemento en lugar de saltos que crucen el cuello de botella. Una conexión residual conecta la entrada con la salida dentro de un mismo bloque, exigiendo coincidencia estricta en todas las dimensiones, es decir, idéntico alto, ancho y número de canales. Para cumplir esta condición cuando el bloque reduce la resolución y amplía canales, se aplica una proyección convolucional 1 por 1 con salto 2 que adapta linealmente el tensor previo a la nueva forma. En contraste, una conexión de salto de U-Net conecta una etapa temprana del codificador directamente con su etapa simétrica del decodificador mediante concatenación por canales, operación que exige coincidencia estricta en el tamaño espacial de alto y ancho, pero admite diferente cantidad de canales, preservando intactos los mapas de alta resolución para reconstruir los contornos con fidelidad.
+Por último, el baseline no es una U-Net porque implementa conexiones residuales locales tipo ResNet propuestas por He y colaboradores en 2016 con adición elemento a elemento en lugar de saltos que crucen el cuello de botella. Una conexión residual conecta la entrada con la salida dentro de un mismo bloque, exigiendo coincidencia estricta en todas las dimensiones, es decir, idéntico alto, ancho y número de canales. Para cumplir esta condición cuando el bloque reduce la resolución y amplía canales, se aplica una proyección convolucional 1 por 1 con salto 2 que adapta linealmente el tensor previo a la nueva forma. En contraste, una conexión de salto de U-Net concebida por Ronneberger y colaboradores en 2015 conecta una etapa temprana del codificador directamente con su etapa simétrica del decodificador mediante concatenación por canales, operación que exige coincidencia estricta en el tamaño espacial de alto y ancho, pero admite diferente cantidad de canales, preservando intactos los mapas de alta resolución para reconstruir los contornos con fidelidad.
 
 \section{Experimentos}
 
@@ -159,11 +162,11 @@ Por último, el baseline no es una U-Net porque implementa conexiones residuales
 \end{tabular}
 \end{table}
 
-\sangria La variante standard\_conv resultó ganadora de la prueba, alcanzando 0.5446 de mIoU en la época 32 y superando al modelo base en más de dos puntos porcentuales. La variante transpose\_strided ocupó el segundo lugar con 0.5376 de mIoU y fue la más rápida por época, confirmando la utilidad del remuestreo aprendido. La variante unet mejoró bastante los bordes con 0.5360 de mIoU. En cambio, kernel5 fue el peor modelo con 0.5181 de mIoU, confirmando el sobreajuste al superar los 5 millones de parámetros.
+\sangria Como se resume en el \refcuadro{tab_resultados}, la variante standard\_conv resultó ganadora de la prueba, alcanzando 0.5446 de mIoU en la época 32 y superando al modelo base en más de dos puntos porcentuales. La variante transpose\_strided ocupó el segundo lugar con 0.5376 de mIoU y fue la más rápida por época, confirmando la utilidad del remuestreo aprendido. La variante unet mejoró bastante los bordes con 0.5360 de mIoU. En cambio, kernel5 fue el peor modelo con 0.5181 de mIoU, confirmando el sobreajuste al superar los 5 millones de parámetros.
 
 \section{Análisis}
 
-\sangria El estudio de las curvas de entrenamiento y de los fallos ayuda a entender con claridad cómo funciona cada una de las arquitecturas.
+\sangria El estudio de las curvas de entrenamiento y de los fallos ayuda a entender con claridad cómo funciona cada una de las arquitecturas. En la \reffigura{fig_compare} se ilustran la evolución del mIoU de validación por época y la relación de rendimiento frente a parámetros.
 
 \begin{figure}[h]
 \centering
@@ -174,7 +177,7 @@ Por último, el baseline no es una U-Net porque implementa conexiones residuales
 
 \subsection{Comparación del mejor modelo frente al baseline}
 
-\sangria Al comparar el modelo ganador standard\_conv contra el modelo base en cada clase individual, se nota una mejora uniforme en todas las partes de la imagen.
+\sangria Al comparar el modelo ganador standard\_conv contra el modelo base en cada clase individual, se nota una mejora uniforme en todas las partes de la imagen. En el \refcuadro{tab_analisis_tablas} se contrastan las métricas de IoU por clase y la matriz de confusión normalizada.
 
 \begin{table}[h]
 \centering
@@ -212,15 +215,13 @@ mIoU global & 0.5203 & 0.5446 & +0.0243 \\
 \end{subtable}
 \end{table}
 
-La clase animal fue la que más subió, ganando 0.0260 puntos, seguida del fondo y del borde. Esto confirma lo que esperábamos, ya que las convoluciones normales aprenden mucho mejor las texturas y pelajes de los animales. La matriz de confusión muestra que la mayor parte de los aciertos están en el fondo con 52.04\% y en el animal con 21.63\%. Casi todas las confusiones ocurren en las fronteras de los bordes, donde un 4.24\% de los píxeles de borde se confunden con fondo y un 3.01\% con animal.
+La clase animal fue la que más subió con 0.0260 puntos, seguida del fondo y del borde, confirmando que las convoluciones estándar aprenden mejor el pelaje. La matriz de confusión muestra 52.04\% de aciertos en fondo y 21.63\% en animal, concentrando las confusiones en los bordes, donde 4.24\% se confunden con fondo y 3.01\% con animal.
 
 \subsection{Inspección de aciertos, fallos y error de anotación}
 
-\sangria En los casos de mayor acierto, la red recorta con gran nitidez a los animales que tienen buen contraste con el fondo, separando las orejas y el cuerpo con notable precisión. Por el contrario, al revisar qué tienen en común las peores predicciones, observamos que los fallos ocurren cuando el pelaje comparte colores con el fondo como en el gato 917 sobre el sofá beige, o cuando encuadres muy cerrados desorientan la escala del rostro como en el caso 440. Más allá de estas dificultades visuales, el fallo más extremo fue la foto 303, donde descubrimos un gato claramente visible cuya máscara original fue pintada por error como puro fondo azul. El modelo predijo de forma correcta la silueta del animal, pero la métrica le asignó una puntuación baja por compararlo contra una máscara equivocada, hallazgo que motivó la auditoría completa de datos explicada en el anexo C de este informe.
+\sangria Al examinar los casos extremos del modelo ganador standard\_conv sobre el conjunto de validación, sus aciertos más destacados muestran cómo la red recorta con fidelidad a los animales contrastados con el fondo, separando orejas y cuerpo con precisión. Por el contrario, al responder qué tienen en común sus peores predicciones según lo planteado en el notebook, la inspección visual revela tres factores. Primero, la confusión cuando el fondo comparte colores con el pelaje como en el gato 917 sobre el sofá beige. Segundo, encuadres cerrados en primer plano como en el gato 440, donde la falta de contexto corporal desorienta los contornos. Tercero y más revelador, fallas de anotación en el dataset como en la foto 303, donde un gato visible fue pintado por error como fondo puro. Como resalta la guía del experimento, esta clase de observaciones aporta un valor superior al de una décima de mIoU, al descubrir que el peor fallo del modelo ganador respondía a un defecto en las etiquetas y no a una debilidad de la red. Estas imágenes se detallan en la \reffigura{fig_inspeccion_visual} del \refanexo{anexo_b}{B}, motivando la auditoría del \refanexo{anexo_c}{C}.
 
 \section{Handover}
-
-\sangria Para el equipo que continúe este trabajo en el futuro, resumo a continuación qué funcionó, qué no dio buen resultado y cómo aprovechar una mayor capacidad de cómputo.
 
 \subsection{Qué funcionó y qué no funcionó}
 
@@ -228,16 +229,16 @@ La clase animal fue la que más subió, ganando 0.0260 puntos, seguida del fondo
 
 \subsection{Recomendaciones con diez veces más cómputo}
 
-\sangria Si contara con diez veces más capacidad de cálculo, aplicaría las siguientes cuatro ideas. En primer lugar, entrenaría con el conjunto completo de 7367 imágenes limpias en lugar del subconjunto de mil fotos, lo que permitiría extender el entrenamiento durante muchas más épocas sin riesgo de memorización. En segundo lugar, evaluaría resoluciones espaciales mayores, como 256 por 256 píxeles, combinando las conexiones de U-Net con convoluciones estándar para afinar el detalle en los contornos. En tercer lugar, aplicaría técnicas de aumentación de datos como rotaciones, traslaciones y variaciones de brillo para enriquecer la variabilidad del entrenamiento. Por último, asignaría un peso mayor a los píxeles de la clase borde dentro de la función de costo, obligando a la red a prestar especial atención a las fronteras entre el animal y el fondo.
+\sangria Si contara con diez veces más capacidad de cálculo, aplicaría las siguientes cuatro ideas. En primer lugar, entrenaría con el conjunto completo de 7367 imágenes limpias en lugar del subconjunto de mil fotos, permitiendo extender el entrenamiento durante muchas más épocas sin sobreajuste. En segundo lugar, evaluaría resoluciones espaciales mayores como 256 por 256 píxeles, combinando U-Net con convoluciones estándar para afinar los contornos. En tercer lugar, aplicaría aumentación de datos con rotaciones, traslaciones y variaciones de brillo. Por último, asignaría mayor peso a la clase borde en la función de costo para priorizar la frontera entre el animal y el fondo.
 
 \clearpage
 
 \section*{Anexos}
 \addcontentsline{toc}{section}{Anexos}
 
-\subsection*{A. Distribución y desbalance de clases en Oxford-IIIT Pet}
+\subsection*{A. Distribución y desbalance de clases en Oxford-IIIT Pet}\label{anexo_a}
 
-\sangria Para comprobar el desbalance entre las tres categorías del problema, evalué la cantidad de píxeles pertenecientes a cada clase en las particiones de entrenamiento y validación sobre 2.000 imágenes del conjunto de datos.
+\sangria Para comprobar el desbalance entre las tres categorías del problema, evalué la cantidad de píxeles pertenecientes a cada clase en las particiones de entrenamiento y validación sobre 2.000 imágenes del conjunto de datos, cuya proporción se detalla en la \reffigura{fig_class_dist}.
 
 \begin{figure}[htbp]
 \centering
@@ -249,9 +250,9 @@ La clase animal fue la que más subió, ganando 0.0260 puntos, seguida del fondo
 El fondo abarca el 58.2\% de la superficie total, el animal representa el 29.9\% y los bordes ocupan únicamente el 11.9\%. Esta marcada disparidad confirma la necesidad de evaluar los modelos mediante mIoU en lugar de exactitud simple de píxel, impidiendo que el predominio del fondo oculte los fallos en la detección de siluetas y contornos.
 
 \clearpage
-\subsection*{B. Inspección visual de predicciones del modelo ganador}
+\subsection*{B. Inspección visual de predicciones del modelo ganador}\label{anexo_b}
 
-\sangria Para evaluar de manera visual el desempeño del modelo standard conv frente al baseline, inspeccioné sus tres mejores aciertos y sus tres peores fallos sobre el conjunto de validación.
+\sangria Para evaluar de manera visual el desempeño del modelo standard conv frente al baseline, inspeccioné sus tres mejores aciertos y sus tres peores fallos sobre el conjunto de validación, ilustrados en la \reffigura{fig_inspeccion_visual}.
 
 \begin{figure}[htbp]
 \centering
@@ -275,11 +276,11 @@ El fondo abarca el 58.2\% de la superficie total, el animal representa el 29.9\%
 En los mejores aciertos se aprecia cómo la red recorta los contornos con notable fidelidad cuando existe un fondo limpio y contrastado, separando con precisión las orejas y el cuerpo del animal. Al revisar las tres peores predicciones del modelo ganador se descubren dos problemas visuales evidentes. El primero es la desorientación ante primeros planos extremos con encuadres muy cerrados como en el gato 440, y el segundo es la confusión generada por fondos que comparten el mismo color y textura del animal, como ocurre con el gato naranja 917 sentado sobre un sofá de tela beige. Por último, la imagen 303 exhibe un defecto de origen en el conjunto de fotos, donde el gato visible fue cubierto por error con una máscara azul de fondo puro, penalizando injustamente una predicción que sí detectó la silueta real.
 
 \clearpage
-\subsection*{C. Auditoría de calidad de datos y cuarentena de casos atípicos}
+\subsection*{C. Auditoría de calidad de datos y cuarentena de casos atípicos}\label{anexo_c}
 
 \sangria A partir del fallo observado en la foto 303 del gato egipcio número 139, revisé exhaustivamente las 7.390 máscaras del dataset Oxford-IIIT Pet comprobando la variación de color de cada una. El análisis evidenció que existen exactamente 23 fotos cuyas máscaras son puro fondo azul y no tienen al animal marcado. En la división original de la tarea cayeron cuatro de estas imágenes en el subconjunto de entrenamiento y una sola en validación, que fue justamente la foto 303.
 
-Para medir el efecto real de este error de anotación, aparté esas 23 fotos en cuarentena y volví a entrenar la red standard conv sobre una partición limpia de 996 fotos de entrenamiento y 999 de validación, sin mezclar datos.
+Para medir el efecto real de este error de anotación, aparté esas 23 fotos en cuarentena y volví a entrenar la red standard conv sobre una partición limpia de 996 fotos de entrenamiento y 999 de validación, sin mezclar datos. En la \reffigura{fig_quarantine} se exhiben ejemplos de estas máscaras erróneas, mientras que en el \refcuadro{tab_comp_limpio} se contrastan los resultados frente al modelo original.
 
 \begin{figure}[htbp]
 \centering
@@ -309,7 +310,7 @@ Para medir el efecto real de este error de anotación, aparté esas 23 fotos en 
 \end{minipage}
 \end{figure}
 
-Al contrastar la respuesta de ambos modelos sobre la foto del gato egipcio número 139, el modelo original dibuja la silueta con gran fidelidad, manteniendo la cola delgada levantada y el hueco de fondo entre la cola y la cabeza. Por el contrario, el modelo reentrenado tiende a engordar al animal y fusiona ambas partes en una sola masa pegada. Esto explica por qué el modelo limpio sube un poco en la clase animal pero baja en la clase borde y en el promedio global, demostrando que el modelo original respeta mucho mejor la forma real de los animales.
+Al contrastar la respuesta de ambos modelos sobre la foto del gato egipcio número 139 en la \reffigura{fig_egyptian}, el modelo original dibuja la silueta con gran fidelidad, manteniendo la cola delgada levantada y el hueco de fondo entre la cola y la cabeza. Por el contrario, el modelo reentrenado tiende a engordar al animal y fusiona ambas partes en una sola masa pegada. Esto explica por qué el modelo limpio sube un poco en la clase animal pero baja en la clase borde y en el promedio global, demostrando que el modelo original respeta mucho mejor la forma real de los animales.
 
 \begin{figure}[htbp]
 \centering
@@ -319,9 +320,9 @@ Al contrastar la respuesta de ambos modelos sobre la foto del gato egipcio núme
 \end{figure}
 
 \clearpage
-\subsection*{D. Tabla de dimensiones y cálculo analítico de parámetros del baseline}
+\subsection*{D. Tabla de dimensiones y cálculo analítico de parámetros del baseline}\label{anexo_d}
 
-\sangria Siguiendo los requerimientos de la tarea, presento en este anexo la tabla completa de dimensiones espaciales y de canales construida a mano para cada etapa del baseline, junto con el desglose analítico paso a paso de los parámetros convolucionales.
+\sangria Siguiendo los requerimientos de la tarea, presento en este anexo la tabla completa de dimensiones espaciales y de canales construida a mano para cada etapa del baseline en el \refcuadro{tab_dimensiones_manual}, junto con el desglose analítico paso a paso de los parámetros convolucionales en el \refcuadro{tab_desglose_encoder}.
 
 \subsubsection*{D.1. Dimensiones espaciales y canales por etapa}
 
