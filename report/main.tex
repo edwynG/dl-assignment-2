@@ -101,7 +101,7 @@ $Y_{1,1} = 2 \cdot 1 + 1 \cdot 1 = 3$, $Y_{1,2} = 4 \cdot 1 + 0 \cdot 1 = 4$, $Y
 Y_a = \begin{bmatrix} 3 & 4 \\ 6 & 11 \end{bmatrix}
 \]
 
-Para el segundo caso, usamos el kernel $K_b = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$, con padding de 2 ceros por lado y stride 2. La matriz con ceros pasa a medir 8 por 8 y la salida mide 4 por 4. Al deslizar el kernel con salto 2 sobre la matriz con relleno, las posiciones exteriores capturan únicamente ceros, mientras que la región central procesa los cuatro bloques principales de $X$.
+Para el segundo caso, usamos el kernel $K_b = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$, con padding de 2 ceros por lado y stride 2. La matriz con ceros pasa a medir 8 por 8 y la salida mide 4 por 4. Al deslizar el kernel con salto 2 sobre la matriz con relleno, las doce posiciones del contorno exterior capturan únicamente ceros, mientras que las cuatro posiciones centrales procesan los cuatro bloques principales de $X$ mediante el producto punto. $Y_{2,2} = 2 \cdot 1 - 1 \cdot 1 = 1$, $Y_{2,3} = 4 \cdot 1 - 0 \cdot 1 = 4$, $Y_{3,2} = 4 \cdot 1 - 2 \cdot 1 = 2$ y $Y_{3,3} = 7 \cdot 1 - 4 \cdot 1 = 3$, con $Y_{i,j} = 0$ en todo el contorno exterior al operar sobre el relleno de ceros.
 \[
 Y_b = \begin{bmatrix}
 0 & 0 & 0 & 0 \\
