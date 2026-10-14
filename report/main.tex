@@ -216,7 +216,7 @@ La clase animal fue la que más subió, ganando 0.0260 puntos, seguida del fondo
 
 \subsection{Inspección de aciertos, fallos y error de anotación}
 
-\sangria En los casos de mayor acierto, la red recorta con gran nitidez a los animales que tienen buen contraste con el fondo, separando las orejas y el cuerpo con precisión, mientras que al revisar los tres peores fallos, el caso más extremo fue la foto 303 con una puntuación de cero. Al inspeccionar esa imagen descubrimos que muestra a un gato claramente visible, pero su máscara en el conjunto de fotos original fue pintada por error de color azul como si fuera puro fondo. El modelo predijo de forma correcta la silueta del gato y su borde, pero la métrica le asignó cero por compararlo contra una máscara equivocada, hallazgo que motivó una revisión completa de todas las fotos detallada en el anexo C de este informe.
+\sangria En los casos de mayor acierto, la red recorta con gran nitidez a los animales que tienen buen contraste con el fondo, separando las orejas y el cuerpo con notable precisión. Por el contrario, al analizar qué tienen en común las peores predicciones, observamos que los fallos ocurren cuando el pelaje comparte colores y texturas con el entorno por bajo contraste, cuando el animal es pequeño dentro de un encuadre saturado de objetos distractores, o cuando sombras fuertes desdibujan los límites de la silueta. Más allá de estas dificultades visuales, el fallo más extremo fue la foto 303 con una puntuación de cero, donde descubrimos un gato claramente visible pero cuya máscara original fue pintada por error como puro fondo azul. El modelo predijo de forma correcta la silueta del animal, pero la métrica le asignó cero por compararlo contra una máscara equivocada, hallazgo que motivó la auditoría completa de datos explicada en el anexo C de este informe.
 
 \section{Handover}
 
@@ -272,7 +272,7 @@ El fondo abarca el 58.2\% de la superficie total, el animal representa el 29.9\%
 \label{fig:inspeccion_visual}
 \end{figure}
 
-En los mejores aciertos se aprecia cómo la red recorta los contornos con notable fidelidad cuando existe buen contraste con el fondo, separando con gran precisión las orejas y el cuerpo del animal. En cambio, entre los peores casos resalta la imagen 303, donde la máscara original del dataset carece por completo de la anotación del animal al estar pintada de color azul como fondo uniforme, asignando una puntuación nula de mIoU a una predicción geométricamente correcta.
+En los mejores aciertos se aprecia cómo la red recorta los contornos con notable fidelidad cuando existe un fondo limpio y contrastado, separando con gran precisión las orejas y el cuerpo del animal. Por su parte, el análisis cualitativo de las peores predicciones revela patrones comunes muy claros: la confusión provocada por pelajes oscuros o atigrados sobre fondos de tonalidad similar como en los gatos 440 y 787, y la dificultad ante sujetos pequeños inmersos en escenas desordenadas con pizarras y muebles como en el perro 147. Finalmente, el caso extremo de la imagen 303 no responde a una debilidad del modelo sino a un defecto de anotación en el dataset original, donde el animal fue cubierto enteramente por una máscara azul de fondo que castigó con cero una segmentación correcta.
 
 \clearpage
 \subsection*{C. Auditoría de calidad de datos y cuarentena de casos atípicos}
