@@ -27,6 +27,8 @@ experiment/test.txt
 experiment/trainval.txt
 experiment/checkpoints
 *.Identifier
+!report/figures/*.png
+!report/figures/*.jpg
 
 # LaTeX
 *.aux
