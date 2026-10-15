@@ -12,6 +12,7 @@
 \usepackage{hyperref}
 \usepackage{caption}
 \usepackage{subcaption}
+\usepackage{float}
 
 \geometry{
   top=1.5cm,
@@ -39,35 +40,35 @@
 \begin{titlepage}
     \centering
     \vspace*{1.2cm}
-    
+
     {\scshape\Large Universidad Central de Venezuela\par}
     \vspace{0.25cm}
     {\scshape\large Facultad de Ciencias --- Escuela de Computación\par}
     \vspace{0.25cm}
     {\large Redes Neuronales Profundas --- Semestre I-2026\par}
-    
+
     \vspace{2.4cm}
-    
+
     {\huge\bfseries Tarea 2}\\[0.4cm]
     {\Large\bfseries Arquitecturas modernas de redes neuronales profundas}\\[0.35cm]
     {\large Segmentación semántica de imágenes}\par
-    
+
     \vspace{2.2cm}
-    
+
     {\large Fernando Crema García\par}
     \vspace{0.15cm}
     {\normalsize Profesor\par}
-    
+
     \vspace{2.4cm}
-    
+
     \begin{flushleft}
         \large
         \textbf{Edwyn Guzmán}\\
         C.I. V-30.326.271
     \end{flushleft}
-    
+
     \vfill
-    
+
     {\large Caracas, octubre de 2026\par}
     \vspace*{0.5cm}
 \end{titlepage}
@@ -79,7 +80,7 @@
 
 \sangria Entrené el modelo base para segmentación semántica sobre el conjunto de datos Oxford-IIIT Pet presentado por Parkhi y colaboradores en 2012, siguiendo el protocolo de evaluación fijado en las instrucciones. La red procesa imágenes de 160 por 160 píxeles y genera mapas de segmentación divididos en tres clases, correspondientes a animal, fondo y borde de silueta.
 
-Con 40 épocas de entrenamiento, usando el optimizador Adam, una tasa de aprendizaje de 1e-4 y lotes de 32 imágenes, este modelo base alcanzó un desempeño de validación de 0.5203 de mIoU en la época 40. Además obtuvo una exactitud de píxel de 0.8527 y un total de 2.058.979 parámetros entrenables. Cada época tomó un promedio de 8.1 segundos en una GPU T4 de Google Colab. El valor de referencia dado en clase para este baseline es de 0.52 de mIoU, por lo que el resultado de 0.5203 confirma la reproducción correcta del modelo y define el número a superar con los experimentos posteriores.
+Con 40 épocas de entrenamiento, usando el optimizador Adam, una tasa de aprendizaje de 1e-4 y lotes de 32 imágenes, este modelo base alcanzó un desempeño de validación de 0.5203 de mIoU en la época 40. Además obtuvo una exactitud de píxel de 0.7636 y un total de 2.058.979 parámetros entrenables. Cada época tomó un promedio de 8.7 segundos en una GPU T4 de Google Colab. El valor de referencia dado en clase para este baseline es de 0.52 de mIoU, por lo que el resultado de 0.5203 confirma la reproducción correcta del modelo y define el número a superar con los experimentos posteriores.
 
 \section{Teoría}
 
@@ -87,35 +88,35 @@ Con 40 épocas de entrenamiento, usando el optimizador Adam, una tasa de aprendi
 
 \sangria Partimos de la matriz de entrada $X$ de tamaño 4 por 4.
 \[
-X = \begin{bmatrix}
-2 & 5 & 4 & 1 \\
-3 & 1 & 2 & 0 \\
-4 & 5 & 7 & 1 \\
-1 & 2 & 3 & 4
-\end{bmatrix}
+    X = \begin{bmatrix}
+        2 & 5 & 4 & 1 \\
+        3 & 1 & 2 & 0 \\
+        4 & 5 & 7 & 1 \\
+        1 & 2 & 3 & 4
+    \end{bmatrix}
 \]
 
 Para el primer caso, usamos el kernel $K_a = \begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}$, sin padding y con stride 2. La matriz de salida mide 2 por 2. Cada elemento se obtiene mediante el producto punto entre el kernel y la ventana correspondiente.
 $Y_{1,1} = 2 \cdot 1 + 1 \cdot 1 = 3$, $Y_{1,2} = 4 \cdot 1 + 0 \cdot 1 = 4$, $Y_{2,1} = 4 \cdot 1 + 2 \cdot 1 = 6$ y $Y_{2,2} = 7 \cdot 1 + 4 \cdot 1 = 11$.
 \[
-Y_a = \begin{bmatrix} 3 & 4 \\ 6 & 11 \end{bmatrix}
+    Y_a = \begin{bmatrix} 3 & 4 \\ 6 & 11 \end{bmatrix}
 \]
 
 Para el segundo caso, usamos el kernel $K_b = \begin{bmatrix} 1 & 0 \\ 0 & -1 \end{bmatrix}$, con padding de 2 ceros por lado y stride 2. La matriz con ceros pasa a medir 8 por 8 y la salida mide 4 por 4. Al deslizar el kernel con salto 2 sobre la matriz con relleno, las doce posiciones del contorno exterior capturan únicamente ceros, mientras que las cuatro posiciones centrales procesan los cuatro bloques principales de $X$ mediante el producto punto. $Y_{2,2} = 2 \cdot 1 - 1 \cdot 1 = 1$, $Y_{2,3} = 4 \cdot 1 - 0 \cdot 1 = 4$, $Y_{3,2} = 4 \cdot 1 - 2 \cdot 1 = 2$ y $Y_{3,3} = 7 \cdot 1 - 4 \cdot 1 = 3$, con $Y_{i,j} = 0$ en todo el contorno exterior al operar sobre el relleno de ceros.
 \[
-Y_b = \begin{bmatrix}
-0 & 0 & 0 & 0 \\
-0 & 1 & 4 & 0 \\
-0 & 2 & 3 & 0 \\
-0 & 0 & 0 & 0
-\end{bmatrix}
+    Y_b = \begin{bmatrix}
+        0 & 0 & 0 & 0 \\
+        0 & 1 & 4 & 0 \\
+        0 & 2 & 3 & 0 \\
+        0 & 0 & 0 & 0
+    \end{bmatrix}
 \]
 
 \subsection{Fórmula de dimensiones y ventajas de las redes convolucionales}
 
 \sangria La dimensión espacial de salida $O$ de una capa convolucional aplicada a una entrada de tamaño $N$, con kernel de tamaño $K$, relleno de ceros $P$ en cada extremo y salto $S$, se determina mediante la expresión siguiente.
 \[
-O = \left\lfloor \frac{N + 2P - K}{S} \right\rfloor + 1
+    O = \left\lfloor \frac{N + 2P - K}{S} \right\rfloor + 1
 \]
 
 Las redes neuronales convolucionales ofrecen tres ventajas fundamentales frente a las redes densas completamente conectadas. Primero, aprovechan la localidad espacial analizando vecindarios locales de píxeles, bajo el principio de que los puntos cercanos guardan una alta correlación semántica. Segundo, utilizan pesos compartidos al aplicar los mismos filtros sobre toda la imagen, lo cual reduce drásticamente la cantidad de parámetros y previene el sobreajuste. Tercero, garantizan equivariancia ante traslaciones, permitiendo que si un patrón o textura se desplaza en la imagen de entrada, su respuesta en el mapa de características se desplace exactamente de la misma manera.
@@ -145,34 +146,34 @@ Por último, el baseline no es una U-Net porque implementa conexiones residuales
 \subsection{Resultados cuantitativos de los experimentos}
 
 \begin{table}[h]
-\centering
-\small
-\caption{Comparación de resultados sobre el conjunto de validación de Oxford-IIIT Pet.}
-\label{tab_resultados}
-\begin{tabular}{lccccc}
-\toprule
-\textbf{Arquitectura} & \textbf{Parámetros} & \textbf{s / época} & \textbf{Mejor época} & \textbf{Val mIoU} & \textbf{Val Pixel Acc} \\
-\midrule
-\textbf{standard\_conv}  & 3.085.123 & 7.5 & 32 & \textbf{0.5446} & 0.8659 \\
-\textbf{transpose\_strided} & 2.058.979 & 7.1 & 31 & 0.5376 & 0.8606 \\
-\textbf{unet}            & 2.274.019 & 7.8 & 31 & 0.5360 & 0.8601 \\
-\textbf{baseline}        & 2.058.979 & 8.1 & 40 & 0.5203 & 0.8527 \\
-\textbf{kernel5}         & 5.199.075 & 8.7 & 38 & 0.5181 & 0.8533 \\
-\bottomrule
-\end{tabular}
+    \centering
+    \small
+    \caption{Comparación de resultados sobre el conjunto de validación de Oxford-IIIT Pet.}
+    \label{tab_resultados}
+    \begin{tabular}{lccccc}
+        \toprule
+        \textbf{Arquitectura}       & \textbf{Parámetros} & \textbf{s / época} & \textbf{Mejor época} & \textbf{Val mIoU} & \textbf{Val Pixel Acc} \\
+        \midrule
+        \textbf{standard\_conv}     & 3.085.123           & 7.6                & 33                   & \textbf{0.5446}   & 0.7840                 \\
+        \textbf{transpose\_strided} & 2.058.979           & 7.5                & 31                   & 0.5372            & 0.7767                 \\
+        \textbf{unet}               & 2.274.019           & 7.9                & 38                   & 0.5361            & 0.7787                 \\
+        \textbf{baseline}           & 2.058.979           & 8.7                & 40                   & 0.5203            & 0.7636                 \\
+        \textbf{kernel5}            & 5.199.075           & 8.9                & 38                   & 0.5186            & 0.7700                 \\
+        \bottomrule
+    \end{tabular}
 \end{table}
 
-\sangria Como se resume en el \refcuadro{tab_resultados}, la variante standard\_conv resultó ganadora de la prueba, alcanzando 0.5446 de mIoU en la época 32 y superando al modelo base en más de dos puntos porcentuales. La variante transpose\_strided ocupó el segundo lugar con 0.5376 de mIoU y fue la más rápida por época, confirmando la utilidad del remuestreo aprendido. La variante unet mejoró bastante los bordes con 0.5360 de mIoU. En cambio, kernel5 fue el peor modelo con 0.5181 de mIoU, confirmando el sobreajuste al superar los 5 millones de parámetros.
+\sangria Como se resume en el \refcuadro{tab_resultados}, la variante standard\_conv resultó ganadora de la prueba, alcanzando 0.5446 de mIoU en la época 33 y superando al modelo base en más de dos puntos porcentuales. La variante transpose\_strided ocupó el segundo lugar con 0.5372 de mIoU y fue la más rápida por época, confirmando la utilidad del remuestreo aprendido. La variante unet mejoró bastante los bordes con 0.5361 de mIoU en la época 38. En cambio, kernel5 fue el peor modelo con 0.5186 de mIoU, confirmando el sobreajuste al superar los 5 millones de parámetros.
 
 \section{Análisis}
 
 \sangria El estudio de las curvas de entrenamiento y de los fallos ayuda a entender con claridad cómo funciona cada una de las arquitecturas. En la \reffigura{fig_compare} se ilustran la evolución del mIoU de validación por época y la relación de rendimiento frente a parámetros.
 
 \begin{figure}[h]
-\centering
-\includegraphics[width=0.58\linewidth]{figures/compare_experiments.png}
-\caption{Curvas de mIoU de validación por época y gráfico de mejor mIoU frente a número de parámetros.}
-\label{fig_compare}
+    \centering
+    \includegraphics[width=0.58\linewidth]{figures/compare_experiments.png}
+    \caption{Curvas de mIoU de validación por época y gráfico de mejor mIoU frente a número de parámetros.}
+    \label{fig_compare}
 \end{figure}
 
 \subsection{Comparación del mejor modelo frente al baseline}
@@ -180,39 +181,39 @@ Por último, el baseline no es una U-Net porque implementa conexiones residuales
 \sangria Al comparar el modelo ganador standard\_conv contra el modelo base en cada clase individual, se nota una mejora uniforme en todas las partes de la imagen. En el \refcuadro{tab_analisis_tablas} se contrastan las métricas de IoU por clase y la matriz de confusión normalizada.
 
 \begin{table}[h]
-\centering
-\small
-\caption{Comparación de IoU por clase y matriz de confusión de standard\_conv.}
-\label{tab_analisis_tablas}
-\begin{subtable}{0.48\textwidth}
-\centering
-\caption{IoU por clase frente al baseline.}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Clase} & \textbf{Baseline} & \textbf{standard} & \textbf{Dif.} \\
-\midrule
-Animal      & 0.5838 & 0.6098 & +0.0260 \\
-Fondo       & 0.7525 & 0.7774 & +0.0249 \\
-Borde       & 0.2246 & 0.2466 & +0.0220 \\
-\midrule
-mIoU global & 0.5203 & 0.5446 & +0.0243 \\
-\bottomrule
-\end{tabular}
-\end{subtable}
-\hfill
-\begin{subtable}{0.48\textwidth}
-\centering
-\caption{Matriz de confusión en \% de píxeles.}
-\begin{tabular}{lccc}
-\toprule
-& \textbf{Pred. An.} & \textbf{Pred. Fo.} & \textbf{Pred. Bo.} \\
-\midrule
-\textbf{Real An.} & 21.63\% & 4.17\%  & 3.69\% \\
-\textbf{Real Fo.} & 2.97\%  & 52.04\% & 3.51\% \\
-\textbf{Real Bo.} & 3.01\%  & 4.24\%  & 4.73\% \\
-\bottomrule
-\end{tabular}
-\end{subtable}
+    \centering
+    \small
+    \caption{Comparación de IoU por clase y matriz de confusión de standard\_conv.}
+    \label{tab_analisis_tablas}
+    \begin{subtable}{0.48\textwidth}
+        \centering
+        \caption{IoU por clase frente al baseline.}
+        \begin{tabular}{lccc}
+            \toprule
+            \textbf{Clase} & \textbf{Baseline} & \textbf{standard} & \textbf{Dif.} \\
+            \midrule
+            Animal         & 0.5838            & 0.6098            & +0.0260       \\
+            Fondo          & 0.7525            & 0.7774            & +0.0249       \\
+            Borde          & 0.2246            & 0.2466            & +0.0220       \\
+            \midrule
+            mIoU global    & 0.5203            & 0.5446            & +0.0243       \\
+            \bottomrule
+        \end{tabular}
+    \end{subtable}
+    \hfill
+    \begin{subtable}{0.48\textwidth}
+        \centering
+        \caption{Matriz de confusión en \% de píxeles.}
+        \begin{tabular}{lccc}
+            \toprule
+                              & \textbf{Pred. An.} & \textbf{Pred. Fo.} & \textbf{Pred. Bo.} \\
+            \midrule
+            \textbf{Real An.} & 21.63\%            & 4.17\%             & 3.69\%             \\
+            \textbf{Real Fo.} & 2.97\%             & 52.04\%            & 3.51\%             \\
+            \textbf{Real Bo.} & 3.01\%             & 4.24\%             & 4.73\%             \\
+            \bottomrule
+        \end{tabular}
+    \end{subtable}
 \end{table}
 
 La clase animal fue la que más subió con 0.0260 puntos, seguida del fondo y del borde, confirmando que las convoluciones estándar aprenden mejor el pelaje. La matriz de confusión muestra 52.04\% de aciertos en fondo y 21.63\% en animal, concentrando las confusiones en los bordes, donde 4.24\% se confunden con fondo y 3.01\% con animal.
@@ -240,116 +241,115 @@ La clase animal fue la que más subió con 0.0260 puntos, seguida del fondo y de
 
 \sangria Para comprobar el desbalance entre las tres categorías del problema, evalué la cantidad de píxeles pertenecientes a cada clase en las particiones de entrenamiento y validación sobre 2.000 imágenes del conjunto de datos, cuya proporción se detalla en la \reffigura{fig_class_dist}.
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.82\linewidth]{figures/class_distribution.png}
-\caption{Distribución porcentual de píxeles por partición y proporción global en las 2.000 imágenes analizadas.}
-\label{fig_class_dist}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{figures/class_distribution.png}
+    \caption{Distribución porcentual de píxeles por partición y proporción global en las 2.000 imágenes analizadas.}
+    \label{fig_class_dist}
 \end{figure}
 
 El fondo abarca el 58.2\% de la superficie total, el animal representa el 29.9\% y los bordes ocupan únicamente el 11.9\%. Esta marcada disparidad confirma la necesidad de evaluar los modelos mediante mIoU en lugar de exactitud simple de píxel, impidiendo que el predominio del fondo oculte los fallos en la detección de siluetas y contornos.
 
-\clearpage
+\vspace{0.6cm}
 \subsection*{B. Inspección visual de predicciones del modelo ganador}\label{anexo_b}
 
 \sangria Para evaluar de manera visual el desempeño del modelo standard conv frente al baseline, inspeccioné sus tres mejores aciertos y sus tres peores fallos sobre el conjunto de validación, ilustrados en la \reffigura{fig_inspeccion_visual}.
 
-\begin{figure}[htbp]
-\centering
-\begin{subfigure}[b]{0.48\linewidth}
+\begin{figure}[H]
     \centering
-    \includegraphics[width=\linewidth]{figures/mejores_predicciones.png}
-    \caption{Tres mejores predicciones con mIoU superior a 0.85.}
-    \label{fig_mejores}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.48\linewidth}
-    \centering
-    \includegraphics[width=\linewidth]{figures/peores_predicciones.png}
-    \caption{Tres peores predicciones, destacando el caso de la foto 303.}
-    \label{fig_peores}
-\end{subfigure}
-\caption{Inspección visual de los aciertos y fallos del modelo standard conv en validación.}
-\label{fig_inspeccion_visual}
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[height=5.6cm,keepaspectratio]{figures/mejores_predicciones.png}
+        \caption{Tres mejores predicciones con mIoU superior a 0.85.}
+        \label{fig_mejores}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\linewidth}
+        \centering
+        \includegraphics[height=5.6cm,keepaspectratio]{figures/peores_predicciones.png}
+        \caption{Tres peores predicciones, destacando el caso de la foto 303.}
+        \label{fig_peores}
+    \end{subfigure}
+    \caption{Inspección visual de los aciertos y fallos del modelo standard conv en validación.}
+    \label{fig_inspeccion_visual}
 \end{figure}
 
 En los mejores aciertos se aprecia cómo la red recorta los contornos con notable fidelidad cuando existe un fondo limpio y contrastado, separando con precisión las orejas y el cuerpo del animal. Al revisar las tres peores predicciones del modelo ganador se descubren dos problemas visuales evidentes. El primero es la desorientación ante primeros planos extremos con encuadres muy cerrados como en el gato 440, y el segundo es la confusión generada por fondos que comparten el mismo color y textura del animal, como ocurre con el gato naranja 917 sentado sobre un sofá de tela beige. Por último, la imagen 303 exhibe un defecto de origen en el conjunto de fotos, donde el gato visible fue cubierto por error con una máscara azul de fondo puro, penalizando injustamente una predicción que sí detectó la silueta real.
 
-\clearpage
+\vspace{0.6cm}
 \subsection*{C. Auditoría de calidad de datos y cuarentena de casos atípicos}\label{anexo_c}
-
 \sangria A partir del fallo observado en la foto 303 del gato egipcio número 139, revisé exhaustivamente las 7.390 máscaras del dataset Oxford-IIIT Pet comprobando la variación de color de cada una. El análisis evidenció que existen exactamente 23 fotos cuyas máscaras son puro fondo azul y no tienen al animal marcado. En la división original de la tarea cayeron cuatro de estas imágenes en el subconjunto de entrenamiento y una sola en validación, que fue justamente la foto 303.
 
 Para medir el efecto real de este error de anotación, aparté esas 23 fotos en cuarentena y volví a entrenar la red standard conv sobre una partición limpia de 996 fotos de entrenamiento y 999 de validación, sin mezclar datos. En la \reffigura{fig_quarantine} se exhiben ejemplos de estas máscaras erróneas, mientras que en el \refcuadro{tab_comp_limpio} se contrastan los resultados frente al modelo original.
 
-\begin{figure}[htbp]
-\centering
-\begin{minipage}[c]{0.42\linewidth}
+\begin{figure}[H]
     \centering
-    \includegraphics[height=5.8cm,keepaspectratio]{figures/quarantine_examples.png}
-    \captionof{figure}{Ejemplos en cuarentena con máscara errónea.}
-    \label{fig_quarantine}
-\end{minipage}
-\hfill
-\begin{minipage}[c]{0.54\linewidth}
-    \centering
-    \captionof{table}{Comparación original vs limpio sobre validación limpia.}
-    \label{tab_comp_limpio}
-    \small
-    \begin{tabular}{lccc}
-    \toprule
-    \textbf{Clase} & \textbf{Original} & \textbf{Limpio} & \textbf{Dif.} \\
-    \midrule
-    Animal      & 0.6101 & 0.6129 & +0.0028 \\
-    Fondo       & 0.7776 & 0.7777 & +0.0001 \\
-    Borde       & 0.2467 & 0.2381 & -0.0086 \\
-    \midrule
-    mIoU global & 0.5448 & 0.5429 & -0.0019 \\
-    \bottomrule
-    \end{tabular}
-\end{minipage}
+    \begin{minipage}[c]{0.42\linewidth}
+        \centering
+        \includegraphics[height=5.2cm,keepaspectratio]{figures/quarantine_examples.png}
+        \captionof{figure}{Ejemplos en cuarentena con máscara errónea.}
+        \label{fig_quarantine}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.54\linewidth}
+        \centering
+        \captionof{table}{Comparación original vs limpio sobre validación limpia.}
+        \label{tab_comp_limpio}
+        \small
+        \begin{tabular}{lccc}
+            \toprule
+            \textbf{Clase} & \textbf{Original} & \textbf{Limpio} & \textbf{Dif.} \\
+            \midrule
+            Animal         & 0.6101            & 0.6129          & +0.0028       \\
+            Fondo          & 0.7776            & 0.7777          & +0.0001       \\
+            Borde          & 0.2467            & 0.2381          & -0.0086       \\
+            \midrule
+            mIoU global    & 0.5448            & 0.5429          & -0.0019       \\
+            \bottomrule
+        \end{tabular}
+    \end{minipage}
 \end{figure}
 
 Al contrastar la respuesta de ambos modelos sobre la foto del gato egipcio número 139 en la \reffigura{fig_egyptian}, el modelo original dibuja la silueta con gran fidelidad, manteniendo la cola delgada levantada y el hueco de fondo entre la cola y la cabeza. Por el contrario, el modelo reentrenado tiende a engordar al animal y fusiona ambas partes en una sola masa pegada. Esto explica por qué el modelo limpio sube un poco en la clase animal pero baja en la clase borde y en el promedio global, demostrando que el modelo original respeta mucho mejor la forma real de los animales.
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.80\linewidth]{figures/egyptian_mau_comparativa.png}
-\caption{Respuesta de ambos modelos ante Egyptian Mau 139, donde la red original conserva la cola y el hueco de fondo, mientras el modelo limpio empasta la figura en un bloque continuo.}
-\label{fig_egyptian}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{figures/egyptian_mau_comparativa.png}
+    \caption{Respuesta de ambos modelos ante Egyptian Mau 139, donde la red original conserva la cola y el hueco de fondo, mientras el modelo limpio empasta la figura en un bloque continuo.}
+    \label{fig_egyptian}
 \end{figure}
 
-\clearpage
+\vspace{0.6cm}
 \subsection*{D. Tabla de dimensiones y cálculo analítico de parámetros del baseline}\label{anexo_d}
 
 \sangria Siguiendo los requerimientos de la tarea, presento en este anexo la tabla completa de dimensiones espaciales y de canales construida a mano para cada etapa del baseline en el \refcuadro{tab_dimensiones_manual}, junto con el desglose analítico paso a paso de los parámetros convolucionales en el \refcuadro{tab_desglose_encoder}.
 
 \subsubsection*{D.1. Dimensiones espaciales y canales por etapa}
 
-\begin{table}[htbp]
-\centering
-\small
-\caption{Dimensiones espaciales y cantidad de canales en cada etapa del baseline.}
-\label{tab_dimensiones_manual}
-\begin{tabular}{llccc}
-\toprule
-\textbf{Etapa del baseline} & \textbf{Capa u operación} & \textbf{Alto $H$} & \textbf{Ancho $W$} & \textbf{Canales $C$} \\
-\midrule
-Entrada & Imagen original & 160 & 160 & 3 \\
-Bloque de entrada & Conv2D $3 \times 3$, stride 2, padding same & 80 & 80 & 32 \\
-Encoder Bloque 1 & SeparableConv2D + MaxPool $S=2$ & 40 & 40 & 64 \\
-Encoder Bloque 2 & SeparableConv2D + MaxPool $S=2$ & 20 & 20 & 128 \\
-Encoder Bloque 3 & SeparableConv2D + MaxPool $S=2$ & 10 & 10 & 256 \\
-\midrule
-\textbf{Cuello de botella} & Representación latente más profunda & \textbf{10} & \textbf{10} & \textbf{256} \\
-\midrule
-Decoder Bloque 1 & Conv2DTranspose $S=1$ + UpSampling $2 \times$ & 20 & 20 & 256 \\
-Decoder Bloque 2 & Conv2DTranspose $S=1$ + UpSampling $2 \times$ & 40 & 40 & 128 \\
-Decoder Bloque 3 & Conv2DTranspose $S=1$ + UpSampling $2 \times$ & 80 & 80 & 64 \\
-Decoder Bloque 4 & Conv2DTranspose $S=1$ + UpSampling $2 \times$ & 160 & 160 & 32 \\
-Capa de salida & Conv2D $3 \times 3$, activación softmax & 160 & 160 & 3 \\
-\bottomrule
-\end{tabular}
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Dimensiones espaciales y cantidad de canales en cada etapa del baseline.}
+    \label{tab_dimensiones_manual}
+    \begin{tabular}{llccc}
+        \toprule
+        \textbf{Etapa del baseline} & \textbf{Capa u operación}                     & \textbf{Alto $H$} & \textbf{Ancho $W$} & \textbf{Canales $C$} \\
+        \midrule
+        Entrada                     & Imagen original                               & 160               & 160                & 3                    \\
+        Bloque de entrada           & Conv2D $3 \times 3$, stride 2, padding same   & 80                & 80                 & 32                   \\
+        Encoder Bloque 1            & SeparableConv2D + MaxPool $S=2$               & 40                & 40                 & 64                   \\
+        Encoder Bloque 2            & SeparableConv2D + MaxPool $S=2$               & 20                & 20                 & 128                  \\
+        Encoder Bloque 3            & SeparableConv2D + MaxPool $S=2$               & 10                & 10                 & 256                  \\
+        \midrule
+        \textbf{Cuello de botella}  & Representación latente más profunda           & \textbf{10}       & \textbf{10}        & \textbf{256}         \\
+        \midrule
+        Decoder Bloque 1            & Conv2DTranspose $S=1$ + UpSampling $2 \times$ & 20                & 20                 & 256                  \\
+        Decoder Bloque 2            & Conv2DTranspose $S=1$ + UpSampling $2 \times$ & 40                & 40                 & 128                  \\
+        Decoder Bloque 3            & Conv2DTranspose $S=1$ + UpSampling $2 \times$ & 80                & 80                 & 64                   \\
+        Decoder Bloque 4            & Conv2DTranspose $S=1$ + UpSampling $2 \times$ & 160               & 160                & 32                   \\
+        Capa de salida              & Conv2D $3 \times 3$, activación softmax       & 160               & 160                & 3                    \\
+        \bottomrule
+    \end{tabular}
 \end{table}
 
 \subsubsection*{D.2. Cálculo analítico a mano de parámetros}
@@ -358,39 +358,39 @@ Capa de salida & Conv2D $3 \times 3$, activación softmax & 160 & 160 & 3 \\
 
 Para una capa Conv2D estándar con kernel 3 por 3, 128 canales de entrada y 128 filtros de salida
 \[
-\text{Parámetros Conv2D} = K \cdot K \cdot C_{in} \cdot C_{out} + C_{out} = 3 \cdot 3 \cdot 128 \cdot 128 + 128 = 147.584
+    \text{Parámetros Conv2D} = K \cdot K \cdot C_{in} \cdot C_{out} + C_{out} = 3 \cdot 3 \cdot 128 \cdot 128 + 128 = 147.584
 \]
 
 Para una capa SeparableConv2D equivalente, la operación se descompone en profundidad y convolución puntual 1 por 1
 \[
-\text{Depthwise} = 3 \cdot 3 \cdot 128 = 1.152, \quad \text{Pointwise} = 1 \cdot 1 \cdot 128 \cdot 128 + 128 = 16.512 \implies \text{Total} = 17.664
+    \text{Depthwise} = 3 \cdot 3 \cdot 128 = 1.152, \quad \text{Pointwise} = 1 \cdot 1 \cdot 128 \cdot 128 + 128 = 16.512 \implies \text{Total} = 17.664
 \]
 
 La razón entre ambas capas demuestra una reducción de 8.35 veces en número de pesos a favor de la separable.
 
 Para el bloque completo del codificador de 128 filtros con entrada de 64 canales, el desglose analítico de cada capa se resume a continuación.
 
-\begin{table}[htbp]
-\centering
-\small
-\caption{Desglose analítico de parámetros en el bloque del codificador de 128 filtros.}
-\label{tab_desglose_encoder}
-\begin{tabular}{lllc}
-\toprule
-\textbf{Componente} & \textbf{Capa u operación} & \textbf{Fórmula analítica} & \textbf{Parámetros} \\
-\midrule
-Rama principal & SeparableConv2D 1 & Depthwise $3 \cdot 3 \cdot 64$ + Pointwise $1 \cdot 64 \cdot 128 + 128$ & 8.896 \\
-               & BatchNormalization 1 & 4 parámetros por canal $\cdot$ 128 canales & 512 \\
-               & SeparableConv2D 2 & Depthwise $3 \cdot 3 \cdot 128$ + Pointwise $1 \cdot 128 \cdot 128 + 128$ & 17.664 \\
-               & BatchNormalization 2 & 4 parámetros por canal $\cdot$ 128 canales & 512 \\
-\midrule
-Rama residual  & Conv2D 1 por 1, salto 2 & Pesos $1 \cdot 1 \cdot 64 \cdot 128$ + Sesgos 128 & 8.320 \\
-\midrule
-Operaciones fijas & ReLU, MaxPool, Adición & Operaciones sin pesos aprendibles & 0 \\
-\midrule
-\textbf{Total del bloque} & \textbf{Bloque encoder 128} & $8.896 + 512 + 17.664 + 512 + 8.320$ & \textbf{35.904} \\
-\bottomrule
-\end{tabular}
+\begin{table}[H]
+    \centering
+    \small
+    \caption{Desglose analítico de parámetros en el bloque del codificador de 128 filtros.}
+    \label{tab_desglose_encoder}
+    \begin{tabular}{lllc}
+        \toprule
+        \textbf{Componente}       & \textbf{Capa u operación}   & \textbf{Fórmula analítica}                                                & \textbf{Parámetros} \\
+        \midrule
+        Rama principal            & SeparableConv2D 1           & Depthwise $3 \cdot 3 \cdot 64$ + Pointwise $1 \cdot 64 \cdot 128 + 128$   & 8.896               \\
+                                  & BatchNormalization 1        & 4 parámetros por canal $\cdot$ 128 canales                                & 512                 \\
+                                  & SeparableConv2D 2           & Depthwise $3 \cdot 3 \cdot 128$ + Pointwise $1 \cdot 128 \cdot 128 + 128$ & 17.664              \\
+                                  & BatchNormalization 2        & 4 parámetros por canal $\cdot$ 128 canales                                & 512                 \\
+        \midrule
+        Rama residual             & Conv2D 1 por 1, salto 2     & Pesos $1 \cdot 1 \cdot 64 \cdot 128$ + Sesgos 128                         & 8.320               \\
+        \midrule
+        Operaciones fijas         & ReLU, MaxPool, Adición      & Operaciones sin pesos aprendibles                                         & 0                   \\
+        \midrule
+        \textbf{Total del bloque} & \textbf{Bloque encoder 128} & $8.896 + 512 + 17.664 + 512 + 8.320$                                      & \textbf{35.904}     \\
+        \bottomrule
+    \end{tabular}
 \end{table}
 
 Las operaciones de activación ReLU, max pooling y la suma elemento a elemento no aportan parámetros. El total analítico de 35.904 parámetros coincide exactamente con el valor verificado en Keras.
